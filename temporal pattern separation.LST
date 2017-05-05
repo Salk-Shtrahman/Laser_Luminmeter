@@ -1,0 +1,393 @@
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION                                           01/18/2017 20:35:29 PAGE 1   
+
+
+C51 COMPILER V9.55, COMPILATION OF MODULE TEMPORAL_PATTERN_SEPARATION
+OBJECT MODULE PLACED IN temporal pattern separation.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE temporal pattern separation.c COMPACT OPTIMIZE(9,SIZE) BROWSE DEBUG OBJE
+                    -CTEXTEND TABS(2)
+
+line level    source
+
+   1          //include headers
+   2          #include <reg60s2.h>
+   3          #include <stdio.h>
+   4          #include <intrins.h>
+   5          #include <math.h>
+   6          #include <stdlib.h>
+   7          
+   8          
+   9          #define FOSC    24000000L 
+  10          #define BAUD    9600
+  11          
+  12            //*******************************************************************************************************
+             -*****************************
+  13            //choose modes
+  14          #define  delay_onoff  0      //set to 1 to delay mouse if it doesn't lick correctly or at all; set 0 other
+             -wise
+  15          #define  blocks  0           //set to 1 if you want to use the block training protocol; set to 0 otherwise
+  16          #define  training  0            //set to 1 if you want the appropriate reward valve to open after every sequ
+             -ence of tones
+  17            //configurable parameters
+  18          #define  duration_delay  (5)/.02                 //set time you want the delay to be in seconds in the par
+             -enthesises
+  19          #define  duration_tones  (.2)/.02                 //set duration of tones in seconds in the parenthesises
+  20          #define  duration_time_between_tones  (.3)/.02     //set duration of time between tones in the parenthesis
+             -es
+  21          #define  duration_lickwindow  (2)/.02              //set duration of lickwindow in seconds in the parenthe
+             -sises
+  22          #define  duration_open_valve  (.1)/.02              //set duration of open reward valve in seconds in the p
+             -arenthesises
+  23          #define  trial_number  200                      //sets number of trials
+  24            //*******************************************************************************************************
+             -*****************************
+  25          //pins are configured here
+  26          sbit TONE = P1^0;                 //output pins
+  27          sbit leftvalve = P1^2;
+  28          sbit rightvalve = P1^1;
+  29          bit busy;
+  30          P1_1 = 1;                         //input pins
+  31          P1_2 = 1; 
+  32          
+  33          
+  34          //global variables 
+  35          unsigned char TH0BIT;           //TxOBITs used to set frequency of square wave. Calculation for 10,000HZ wave  
+  36          unsigned char TL0BIT;           //(.0001s period) 65535-(24000000/12/10000)=65335(dec)->FF37(hex) TH0=FF TL0=3
+             -7
+  37          unsigned char continuouscounter = 0;      /*counts number of times that timer 1 resets without resetting to k
+             -now the overall time 
+  38                                        lickwindow, etc. and resets to zero each time the program switches between these
+             - phases
+  39                                        passes in the duration of the program*/
+  40          unsigned char timer1flag;               //set to 1 everytime timer1 overflows
+  41          
+  42          //void timer0(void) interrupt 1 {         //timer 0 interrupt used for generating square wave for tones
+  43          //  TH0=TH0BIT;                         // timer reloaded 
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION                                           01/18/2017 20:35:29 PAGE 2   
+
+  44          //  TL0=TL0BIT;   
+  45          //  TONE=~TONE;}                        //toggle or untoggle TONE on interrupt
+  46          
+  47          void timer0(void) interrupt 1 {   /* timer 1 interrupt used to count how much time passes so that it knows
+             - when to: 
+  48   1                                           play or stop playing tones, start lickwindow, stop lickwindow, start 
+             -delay, etc. */
+  49   1        TL0=0x0B;                       // initial values loaded to timer 50HZ (.02s period) 
+  50   1        TH0=0x63;                       // 65355-(24,000,000/12/50)=25355 25355(dec)->630B(hex) TH1=63 TL1=0B
+  51   1        timer1flag = 1;
+  52   1        continuouscounter++;
+  53   1      } 
+  54          void Uart_Isr() interrupt 4 using 1
+  55          {
+  56   1          if (RI)
+  57   1          {
+  58   2              RI = 0;             //Clear receive interrupt flag
+  59   2              P0 = SBUF;          //P0 show UART data
+  60   2          }
+  61   1          if (TI)
+  62   1          {
+  63   2              TI = 0;             //Clear transmit interrupt flag
+  64   2              busy = 0;           //Clear transmit busy flag
+  65   2          }
+  66   1      }
+  67          
+  68          int printf(const char *format, ... );
+  69          int rand(void);                   //random number generator
+  70          void srand(unsigned int seed);    //sets a seed to rng
+*** WARNING C235 IN LINE 70 OF temporal pattern separation.c: parameter 1: different types
+  71          
+  72          void dripfunction(int  targets, int corrects, int trainings, int durationvalves, int timecounter){
+  73   1        int driptimer1counter = 0;
+  74   1        int time;
+  75   1        int rightlick;
+  76   1        int leftlick;
+  77   1        if (corrects == 1 || trainings == 1){
+  78   2          if (targets == 0){
+  79   3            rightvalve = 1;
+  80   3          }
+  81   2          else{
+  82   3            leftvalve = 1;
+  83   3          }
+  84   2        }
+  85   1        while (corrects == 1 || trainings == 1){
+  86   2          rightlick = P1_1;
+  87   2          leftlick = P1_2;
+  88   2          time = (.02*timecounter) + (.0000005*(65355-(TH0<<2|TL0)+25335));
+  89   2          printf("\n%n,%n,%n",time,leftlick,rightlick);
+  90   2          if (timer1flag == 1){
+  91   3            driptimer1counter++;
+  92   3            timer1flag = 0;
+  93   3            if (driptimer1counter == durationvalves){
+  94   4              driptimer1counter = 0;
+  95   4              rightvalve = 0;
+  96   4              leftvalve = 0;
+  97   4            }
+  98   3          }
+  99   2        }
+ 100   1      }
+ 101          
+ 102          void main(){ 
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION                                           01/18/2017 20:35:29 PAGE 3   
+
+ 103   1        
+ 104   1          //other variables    
+ 105   1        char xdata sequence[200][2][4];             /*sequence[trial_number][x][k] x=0 contains a bunch of  nonta
+             -rget  
+ 106   1                                                    sequences; x=1 contains the sequence that is actually played;*/
+ 107   1        const int duration_sequence = 4*duration_tones + 3*duration_time_between_tones;
+ 108   1        const int duration_tones_and_space = duration_tones + duration_time_between_tones;
+ 109   1        unsigned char  timer1counter;
+ 110   1        unsigned char  j;                       //j is the index used to indicate which sequence is being played
+ 111   1        unsigned char  phase = 0;    //phase = 0 means indicates that the tones are playing
+ 112   1                          //phase = 1 indicates that the lickwindow is on
+ 113   1                          //phase = 2 indictates that it is the delay time between lickwindow and next song
+ 114   1        unsigned char  k;                     //k is the index used to indicate which tone is playing of the trial_n
+             -umberth sequence
+ 115   1        unsigned char  whatmouselicks;
+ 116   1        unsigned char  sequencelick;            //sequencelick=5 indicates that the mouse licked left; 6 --> right; 4 -
+             --> no lick; 7 --> licked both
+ 117   1        unsigned char  realtimelick;            //
+ 118   1        unsigned char  leftlick = 0;            //if leftlick = 1, mouse made contact with left lick port
+ 119   1        unsigned char  rightlick = 0;         //if leftlick = 1, mouse made contact with right lick port
+ 120   1        unsigned char  leftlickcounter = 0;   //counts the number of consecutive times in which the left lick port
+             -s reads HIGH
+ 121   1        unsigned char  rightlickcounter = 0;    //counts the number of consecutive times in which the right lick po
+             -rts reads HIGH
+ 122   1        unsigned char  whatmouseshouldlick;        
+ 123   1        unsigned char  correct = 0;       //correct=1 indicates mouse licked correctly; correct = 0 incorrect lick; 
+             -correct = -1 indicates no lick
+ 124   1        unsigned char  target = 0;              //if target = 0, target sequence plays. if target = 1, nontarget seq
+             -uence plays
+ 125   1        unsigned char  time = 0;
+ 126   1        unsigned char  xdata block_sequence[300];
+ 127   1        const char xdata toneslist[8] = {'a','b','c','d','e','f','g','\0'};   //array used to randomly generate s
+             -equences
+ 128   1        
+ 129   1        SCON = 0x5a;                    //8 bit data ,no parity bit
+ 130   1        TMOD = 0x20;                    //T1 as 8-bit auto reload
+ 131   1        TH1 = TL1 = 0xFD; //Set Uart baudrate
+ 132   1        TR1 = 1;                        //T1 start running
+ 133   1                                                            //enable serial receive --- 8-bit Shift Register Mode: (baud rate = crystal/12)
+ 134   1        IE = 0x82;                                //enable global interrupt and timer0 and timer1 and serial interrupts 
+ 135   1        TMOD = 0x21;                              //16 bit timers for timer 1 and timer 0
+ 136   1        TL0=0x0B;                                 //initial values loaded to timer 50HZ (.02s period) 
+ 137   1        TH0=0x63;                                 //65355-(24,000,000/12/50)=25355 25355(dec)->630B(hex) TH1=63 T
+             -L1=0B
+ 138   1        TR0 = 1;                                  //start timer 1
+ 139   1        printf("helloooooooooooooo\n");
+ 140   1        while(1);
+ 141   1        for (j = 0 ; j <= trial_number ; j++){              
+ 142   2          for (k = 0 ; k <= 3 ; k++){   //this loop generates nontarget sequence in the second column of sequence
+ 143   3            int randindex = rand() % 6;
+ 144   3            sequence[trial_number][0][k] = toneslist[randindex];
+ 145   3          }
+ 146   2        }
+ 147   1        for (j = 0 ; j <= trial_number ; j++){              
+ 148   2          if (j%3 == 2){
+ 149   3            k = !k;
+ 150   3          }
+ 151   2          block_sequence[j] = k;
+ 152   2        }
+ 153   1        //need random seed?
+ 154   1        srand(7);                                 //seed rng
+ 155   1        for(j = 0 ; j < trial_number ; j++){
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION                                           01/18/2017 20:35:29 PAGE 4   
+
+ 156   2          if (blocks == 1){
+ 157   3            target = block_sequence[j];
+ 158   3          }
+ 159   2          if (target == 0){
+ 160   3            sequence[j][0][0] = 'c';        //if it's supposed to play target sequence
+ 161   3            sequence[j][0][1] = 'd';        //it overwrites the nontarget sequence that was
+ 162   3            sequence[j][0][2] = 'e';        //that was there before
+ 163   3            sequence[j][0][3] = 'f';
+ 164   3          }
+ 165   2          k = 0;
+ 166   2          while(phase == 0){
+ 167   3            leftlick = P1_2;                            //read the input lick pins
+ 168   3            rightlick = P1_1;
+ 169   3            time = (.02*continuouscounter) + (.0000005*(65355-(TH0<<2|TL0)+25335));
+ 170   3            printf("\n%n,%n,%n",time,phase,realtimelick);
+ 171   3            if (timer1counter == 0){
+ 172   4              TR0 = 1;
+ 173   4            }
+ 174   3            if (timer1flag == 1){                       //if timer1flag goes HIGH, increase timer1counter and check
+             - if the tone should
+ 175   4              timer1counter++;                          //start/stop playing, change, or move onto lickwindow
+ 176   4              timer1flag = 0;
+ 177   4              if (timer1counter == (k+1)*duration_tones){
+ 178   5                TR0 = 0;                                //toggle timer 0 which toggles tone
+ 179   5              }
+ 180   4              else if (timer1counter == (k+1)*duration_tones_and_space){
+ 181   5                k++;
+ 182   5                if (timer1counter == duration_sequence){
+ 183   6                  phase = 1;
+ 184   6                  timer1counter = 0;
+ 185   6                  TR0 = 1;
+ 186   6                }
+ 187   5                else{
+ 188   6                  switch (sequence[j][1][k]) {
+ 189   7                    case 'a' : TH0BIT = 0xFE; TL0BIT = 0xE3; break;
+ 190   7                    case 'b' : TH0BIT = 0xFF; TL0BIT = 0x02; break;
+ 191   7                    case 'c' : TH0BIT = 0xFF; TL0BIT = 0x10; break;
+ 192   7                    case 'd' : TH0BIT = 0xFF; TL0BIT = 0x2A; break;
+ 193   7                    case 'e' : TH0BIT = 0xFF; TL0BIT = 0x41; break;
+ 194   7                    case 'f' : TH0BIT = 0xFF; TL0BIT = 0x4C; break;
+ 195   7                    case 'g' : TH0BIT = 0xFF; TL0BIT = 0x60; break;
+ 196   7                  }
+ 197   6                }         
+ 198   5              }
+ 199   4            }
+ 200   3          } 
+ 201   2          while (training == 1 && phase == 1){
+ 202   3            dripfunction(target, correct, training, duration_open_valve, continuouscounter);
+ 203   3            leftlick = P1_2;
+ 204   3            rightlick = P1_1;
+ 205   3            if (leftlick == 0 & rightlick == 0){
+ 206   4              realtimelick = 3;
+ 207   4            }
+ 208   3            else if (leftlick == 0 & rightlick == 1){
+ 209   4              realtimelick = 5;
+ 210   4            }
+ 211   3            else if (leftlick == 1 & rightlick == 0){
+ 212   4              realtimelick = 4;
+ 213   4            }
+ 214   3            else {
+ 215   4              realtimelick = 6;
+ 216   4            }  
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION                                           01/18/2017 20:35:29 PAGE 5   
+
+ 217   3            time = (.02*continuouscounter) + (.0000005*(65355-(TH0<<2|TL0)+25335));
+ 218   3            printf("\n%n,%n,%n",time,phase,realtimelick);
+ 219   3            if (timer1flag == 1){
+ 220   4              timer1counter++;
+ 221   4              timer1flag = 0;
+ 222   4              if (timer1counter == duration_lickwindow){
+ 223   5                timer1counter = 0;
+ 224   5                phase = 2;
+ 225   5              }
+ 226   4            }
+ 227   3          }
+ 228   2          while(training == 0 && phase == 1){
+ 229   3            leftlick = P1_2;
+ 230   3            rightlick = P1_1;
+ 231   3            if (leftlick == 0 & rightlick == 0){
+ 232   4              realtimelick = 3;
+ 233   4            }
+ 234   3            else if (leftlick == 0 & rightlick == 1){
+ 235   4              realtimelick = 5;
+ 236   4            }
+ 237   3            else if (leftlick == 1 & rightlick == 0){
+ 238   4              realtimelick = 4;
+ 239   4            }
+ 240   3            else {
+ 241   4              realtimelick = 6;
+ 242   4            }  
+ 243   3            time = (.02*continuouscounter) + (.0000005*(65355-(TH0<<2|TL0)+25335));
+ 244   3            printf("\n%n,%n,%n",time,phase,realtimelick);
+ 245   3            if (leftlick == 1){
+ 246   4              leftlickcounter = leftlickcounter++;        
+ 247   4              if (leftlickcounter >= 10){
+ 248   5                leftlickcounter = 0;
+ 249   5                sequencelick = 1;
+ 250   5                timer1counter = 0;
+ 251   5                if (target == 1){
+ 252   6                  correct = 1;
+ 253   6                  phase = 0;
+ 254   6                  whatmouselicks = 16;
+ 255   6                  dripfunction(target, correct, training, duration_open_valve, continuouscounter);
+ 256   6                  whatmouseshouldlick = target;
+ 257   6                target = rand()%2;
+ 258   6                }
+ 259   5                else{
+ 260   6                  correct = 0;
+ 261   6                  phase = 2;
+ 262   6                }
+ 263   5                timer1counter = 0;
+ 264   5              }
+ 265   4            }
+ 266   3            else{
+ 267   4             leftlickcounter = 0;
+ 268   4            }
+ 269   3            if (rightlick == 1){
+ 270   4              rightlickcounter = rightlickcounter++;
+ 271   4              if (rightlickcounter >= 10){
+ 272   5                rightlickcounter = 0;
+ 273   5                sequencelick = 2;
+ 274   5                whatmouselicks = 18;
+ 275   5                if (target == 0){
+ 276   6                  correct = 1;
+ 277   6                  phase = 0;
+ 278   6                  dripfunction(target, correct, training, duration_open_valve, continuouscounter);
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION                                           01/18/2017 20:35:29 PAGE 6   
+
+ 279   6                  whatmouseshouldlick = target;
+ 280   6                target = rand()%2;
+ 281   6                }
+ 282   5                else{
+ 283   6                  correct = 0;
+ 284   6                  phase = 2;
+ 285   6                }
+ 286   5                timer1counter = 0;
+ 287   5              }
+ 288   4            }
+ 289   3            else{
+ 290   4              rightlickcounter = 0;
+ 291   4            }
+ 292   3            if (timer1flag == 1){
+ 293   4              timer1counter++;
+ 294   4              timer1flag = 0;
+ 295   4              if (timer1counter == duration_lickwindow){
+ 296   5                whatmouselicks = 14;
+ 297   5                timer1counter = 0;
+ 298   5                correct = 0;
+ 299   5                phase = 2;
+ 300   5              }
+ 301   4            }
+ 302   3          }
+ 303   2          if (delay_onoff == 1){
+ 304   3            while (phase == 2){
+ 305   4              leftlick = P1_2;
+ 306   4              rightlick = P1_1;
+ 307   4              if (timer1flag == 1){
+ 308   5                timer1counter++;
+ 309   5                timer1flag = 0;
+ 310   5                if (timer1counter == duration_delay){
+ 311   6                  phase = 0;
+ 312   6                  timer1counter = 0;
+ 313   6                }
+ 314   5              }
+ 315   4              time = (.02*continuouscounter) + (.0000005*(65355-(TH0<<2|TL0)+25335));
+ 316   4              printf("\n%n,%n,%n",time,phase,realtimelick);
+ 317   4            }
+ 318   3          }
+ 319   2          else{
+ 320   3            phase = 0;
+ 321   3            timer1counter = 0;
+ 322   3          }
+ 323   2          printf("\n,,,%n,%n,%n,%s",j,whatmouselicks,whatmouseshouldlick,sequence[trial_number][1]);
+ 324   2        }
+ 325   1        while(1){
+ 326   2        printf("end");
+ 327   2        }
+ 328   1      }
+ 329          ////Contact GitHub API Training Shop Blog About
+ 330          ////© 2017 GitHub, Inc. Terms Privacy Security Status Help
+*** WARNING C294 IN LINE 141 OF temporal pattern separation.c: unreachable code
+*** WARNING C294 IN LINE 157 OF temporal pattern separation.c: unreachable code
+*** WARNING C294 IN LINE 202 OF temporal pattern separation.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    443    ----
+   CONSTANT SIZE    =     58    ----
+   XDATA SIZE       =   ----    1908
+   PDATA SIZE       =      8      39
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION                                           01/18/2017 20:35:29 PAGE 7   
+
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  4 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,396 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        03/06/2017  19:02:24  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\KEIL_V5\C51\BIN\BL51.EXE .\temporal_pattern_separation_v3.obj TO ADC1 RAMSIZE (256)
+
+
+MEMORY MODEL: COMPACT WITH FLOATING POINT ARITHMETIC
+
+
+INPUT MODULES INCLUDED:
+  .\temporal_pattern_separation_v3.obj (TEMPORAL_PATTERN_SEPARATION_V3)
+  C:\KEIL_V5\C51\LIB\C51FPC.LIB (?C?FPCMP)
+  C:\KEIL_V5\C51\LIB\C51FPC.LIB (?C?FCAST)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C_STARTUP)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C?COPY)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C?UIDIV)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C?SIDIV)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C?LNEG)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C?CCASE)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (RAND)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (ABS)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C_INIT)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C?LLDPDATA)
+  C:\KEIL_V5\C51\LIB\C51C.LIB (?C?LSTPDATA)
+
+
+LINK MAP OF MODULE:  ADC1 (TEMPORAL_PATTERN_SEPARATION_V3)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+                    0008H     0018H                  *** GAP ***
+            BIT     0020H.0   0001H.1   UNIT         ?BI?TEMPORAL_PATTERN_SEPARATION_V3
+            BIT     0021H.1   0000H.1   UNIT         _BIT_GROUP_
+                    0021H.2   0000H.6                *** GAP ***
+            IDATA   0022H     0001H     UNIT         ?STACK
+
+            * * * * * * *  X D A T A   M E M O R Y  * * * * * * *
+            XDATA   0000H     000AH     INPAGE       ?PD?TEMPORAL_PATTERN_SEPARATION_V3
+            XDATA   000AH     0004H     INPAGE       ?PD?RAND?RAND
+            XDATA   000EH     0019H     INPAGE       _PDATA_GROUP_
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     0003H     ABSOLUTE     
+                    0006H     0005H                  *** GAP ***
+            CODE    000BH     0003H     ABSOLUTE     
+                    000EH     0005H                  *** GAP ***
+            CODE    0013H     0003H     ABSOLUTE     
+                    0016H     000DH                  *** GAP ***
+            CODE    0023H     0003H     ABSOLUTE     
+                    0026H     07DAH                  *** GAP ***
+            CODE    0800H     02EFH     UNIT         ?PR?MAIN?TEMPORAL_PATTERN_SEPARATION_V3
+            CODE    0AEFH     0284H     UNIT         ?C?LIB_CODE
+            CODE    0D73H     016DH     UNIT         ?PR?TIMER0?TEMPORAL_PATTERN_SEPARATION_V3
+            CODE    0EE0H     008CH     UNIT         ?C_C51STARTUP
+            CODE    0F6CH     004AH     UNIT         ?PR?RAND?RAND
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/06/2017  19:02:24  PAGE 2
+
+
+            CODE    0FB6H     0032H     UNIT         ?PR?TEMPORAL_PATTERN_SEPARATION_V3
+            CODE    0FE8H     0030H     UNIT         ?PR?EXINT0?TEMPORAL_PATTERN_SEPARATION_V3
+            CODE    1018H     002FH     UNIT         ?PR?EXINT1?TEMPORAL_PATTERN_SEPARATION_V3
+            CODE    1047H     0024H     UNIT         ?C_INITSEG
+            CODE    106BH     000FH     UNIT         ?CO?TEMPORAL_PATTERN_SEPARATION_V3
+            CODE    107AH     000DH     UNIT         ?PR?UART_ISR?TEMPORAL_PATTERN_SEPARATION_V3
+            CODE    1087H     000CH     UNIT         ?PR?_ABS?ABS
+
+
+
+OVERLAY MAP OF MODULE:   ADC1 (TEMPORAL_PATTERN_SEPARATION_V3)
+
+
+SEGMENT                                             BIT_GROUP          PDATA_GROUP
+  +--> CALLED SEGMENT                            START    LENGTH     START    LENGTH
+------------------------------------------------------------------------------------
+?PR?TIMER0?TEMPORAL_PATTERN_SEPARATIO...         -----    -----      -----    -----
+  +--> ?PR?TEMPORAL_PATTERN_SEPARATION_V3
+
+*** NEW ROOT ***************************************************
+
+?PR?EXINT0?TEMPORAL_PATTERN_SEPARATIO...         -----    -----      -----    -----
+  +--> ?PR?TEMPORAL_PATTERN_SEPARATION_V3
+
+*** NEW ROOT ***************************************************
+
+?PR?EXINT1?TEMPORAL_PATTERN_SEPARATIO...         -----    -----      -----    -----
+  +--> ?PR?TEMPORAL_PATTERN_SEPARATION_V3
+
+*** NEW ROOT ***************************************************
+
+?C_C51STARTUP                                    -----    -----      -----    -----
+  +--> ?PR?MAIN?TEMPORAL_PATTERN_SEPARATION_V3
+  +--> ?C_INITSEG
+
+?PR?MAIN?TEMPORAL_PATTERN_SEPARATION_V3          0021H.1  0000H.1    000EH    0019H
+  +--> ?CO?TEMPORAL_PATTERN_SEPARATION_V3
+  +--> ?PR?TEMPORAL_PATTERN_SEPARATION_V3
+  +--> ?PR?RAND?RAND
+  +--> ?PR?_ABS?ABS
+
+
+
+SYMBOL TABLE OF MODULE:  ADC1 (TEMPORAL_PATTERN_SEPARATION_V3)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        TEMPORAL_PATTERN_SEPARATION_V3
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:00B2H         PUBLIC        P3M0
+  D:00B1H         PUBLIC        P3M1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  B:0020H.0       PUBLIC        target
+  D:00A8H         PUBLIC        IE
+  X:0000H         PUBLIC        beginreward
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/06/2017  19:02:24  PAGE 3
+
+
+  X:0002H         PUBLIC        phase
+  D:00B8H         PUBLIC        IP
+  X:0003H         PUBLIC        phasecounter
+  B:0098H.0       PUBLIC        RI
+  X:0005H         PUBLIC        mouselicked
+  B:0098H.1       PUBLIC        TI
+  B:0020H.1       PUBLIC        pause
+  B:0020H.2       PUBLIC        tonechange
+  D:00D8H         PUBLIC        CCON
+  B:0020H.3       PUBLIC        dripinterrupt
+  C:0800H         PUBLIC        main
+  C:107AH         PUBLIC        Uart_Isr
+  D:0099H         PUBLIC        SBUF
+  D:0098H         PUBLIC        SCON
+  D:008FH         PUBLIC        WAKE_CLKO
+  D:0089H         PUBLIC        TMOD
+  D:0088H         PUBLIC        TCON
+  B:00A0H.2       PUBLIC        rightlight
+  D:008EH         PUBLIC        AUXR
+  C:106BH         SYMBOL        _?ix1000
+  B:00B0H.6       PUBLIC        rightvalve
+  C:106FH         SYMBOL        _?ix1001
+  C:1073H         SYMBOL        _?ix1002
+  B:0020H.4       PUBLIC        busy
+  B:0020H.5       PUBLIC        senddata
+  B:00A0H.1       PUBLIC        leftlight
+  D:008CH         PUBLIC        TH0
+  D:008DH         PUBLIC        TH1
+  B:0088H.0       PUBLIC        IT0
+  B:00A8H.0       PUBLIC        EX0
+  B:0088H.2       PUBLIC        IT1
+  B:00A8H.2       PUBLIC        EX1
+  B:00B0H.4       PUBLIC        leftvalve
+  D:008AH         PUBLIC        TL0
+  D:008BH         PUBLIC        TL1
+  C:0D73H         PUBLIC        timer0
+  X:0006H         PUBLIC        awesome_buffer
+  B:0020H.6       PUBLIC        info_received_flag
+  C:0FE8H         PUBLIC        exint0
+  C:1018H         PUBLIC        exint1
+  D:009CH         PUBLIC        BRT
+  X:0007H         PUBLIC        driptimecounter
+  X:0008H         PUBLIC        k
+  B:0020H.7       PUBLIC        rightdripflag
+  X:0009H         PUBLIC        correct
+  D:00D0H         PUBLIC        PSW
+  B:0021H.0       PUBLIC        leftdripflag
+  C:0FB6H         SYMBOL        Com009B
+  C:0FB6H         SYMBOL        L?0156
+  C:0FBAH         SYMBOL        L?0157
+  C:0FC3H         SYMBOL        L?0158
+  C:0FCEH         SYMBOL        L?0159
+  C:0FD6H         SYMBOL        L?0160
+  C:0FD7H         SYMBOL        L?0161
+  C:0FDEH         SYMBOL        L?0162
+  -------         PROC          COM009B
+  -------         ENDPROC       COM009B
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/06/2017  19:02:24  PAGE 4
+
+
+  -------         PROC          TIMER0
+  C:0D73H         LINE#         64
+  C:0D90H         LINE#         65
+  C:0D93H         LINE#         66
+  C:0D96H         LINE#         67
+  C:0D9BH         LINE#         68
+  C:0D9BH         LINE#         69
+  C:0D9BH         LINE#         70
+  C:0D9BH         LINE#         72
+  C:0D9BH         LINE#         76
+  C:0D9BH         LINE#         77
+  C:0D9BH         LINE#         78
+  C:0DA7H         LINE#         79
+  C:0DB4H         LINE#         80
+  C:0DBFH         LINE#         81
+  C:0DCBH         LINE#         82
+  C:0DD8H         LINE#         83
+  C:0DE3H         LINE#         84
+  C:0E1DH         LINE#         85
+  C:0E24H         LINE#         86
+  C:0E47H         LINE#         87
+  C:0E55H         LINE#         88
+  C:0E5AH         LINE#         89
+  C:0E69H         LINE#         90
+  C:0E71H         LINE#         91
+  C:0E79H         LINE#         92
+  C:0E81H         LINE#         93
+  C:0E89H         LINE#         94
+  C:0E9BH         LINE#         95
+  C:0EA6H         LINE#         96
+  C:0EACH         LINE#         97
+  C:0EB0H         LINE#         98
+  C:0EC0H         LINE#         99
+  C:0EC0H         LINE#         100
+  C:0EC0H         LINE#         101
+  -------         ENDPROC       TIMER0
+  -------         PROC          EXINT0
+  C:0FE8H         LINE#         103
+  C:0FF1H         LINE#         104
+  C:0FF9H         LINE#         105
+  C:1004H         LINE#         106
+  C:100CH         LINE#         107
+  -------         ENDPROC       EXINT0
+  -------         PROC          EXINT1
+  C:1018H         LINE#         109
+  C:1021H         LINE#         110
+  C:1029H         LINE#         111
+  C:1033H         LINE#         112
+  C:103DH         LINE#         113
+  -------         ENDPROC       EXINT1
+  -------         PROC          UART_ISR
+  C:107AH         LINE#         115
+  C:107AH         LINE#         116
+  C:107FH         LINE#         121
+  C:107FH         LINE#         122
+  -------         ENDPROC       UART_ISR
+  C:0AD5H         SYMBOL        L?0154
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/06/2017  19:02:24  PAGE 5
+
+
+  -------         PROC          MAIN
+  -------         DO            
+  X:000EH         SYMBOL        targetsequence
+  X:0012H         SYMBOL        targetdifficulty
+  X:0016H         SYMBOL        tonedifficulty
+  X:0017H         SYMBOL        songdifficulty
+  X:0018H         SYMBOL        i
+  X:0019H         SYMBOL        sequence
+  X:001DH         SYMBOL        j1
+  X:001FH         SYMBOL        j2
+  X:0020H         SYMBOL        toneslist
+  B:0021H.1       SYMBOL        correctflag
+  -------         ENDDO         
+  C:0800H         LINE#         124
+  C:0800H         LINE#         125
+  C:080BH         LINE#         126
+  C:0816H         LINE#         127
+  C:081AH         LINE#         128
+  C:081CH         LINE#         129
+  C:081EH         LINE#         131
+  C:0823H         LINE#         132
+  C:0825H         LINE#         133
+  C:0836H         LINE#         134
+  C:0838H         LINE#         135
+  C:083BH         LINE#         136
+  C:083EH         LINE#         137
+  C:0841H         LINE#         139
+  C:0847H         LINE#         140
+  C:084AH         LINE#         141
+  C:084DH         LINE#         142
+  C:0850H         LINE#         143
+  C:0852H         LINE#         144
+  C:0854H         LINE#         145
+  C:0857H         LINE#         146
+  C:085AH         LINE#         147
+  C:085DH         LINE#         148
+  C:085FH         LINE#         149
+  C:0861H         LINE#         150
+  C:0867H         LINE#         151
+  C:086BH         LINE#         152
+  C:086EH         LINE#         153
+  C:0874H         LINE#         154
+  C:0895H         LINE#         155
+  C:08AFH         LINE#         156
+  C:08CAH         LINE#         157
+  C:08DCH         LINE#         158
+  C:08DCH         LINE#         159
+  C:08E0H         LINE#         176
+  C:08E4H         LINE#         177
+  C:08F3H         LINE#         178
+  C:08F3H         LINE#         179
+  C:0905H         LINE#         180
+  C:0927H         LINE#         181
+  C:0927H         LINE#         182
+  C:092BH         LINE#         183
+  C:0949H         LINE#         184
+  C:0949H         LINE#         185
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/06/2017  19:02:24  PAGE 6
+
+
+  C:094DH         LINE#         186
+  C:0950H         LINE#         187
+  C:0971H         LINE#         188
+  C:0985H         LINE#         189
+  C:099AH         LINE#         190
+  C:099FH         LINE#         191
+  C:09C3H         LINE#         192
+  C:09D5H         LINE#         193
+  C:09DCH         LINE#         195
+  C:09F7H         LINE#         196
+  C:0A03H         LINE#         197
+  C:0A0DH         LINE#         198
+  C:0A18H         LINE#         199
+  C:0A20H         LINE#         200
+  C:0A29H         LINE#         201
+  C:0A31H         LINE#         202
+  C:0A42H         LINE#         203
+  C:0A54H         LINE#         204
+  C:0A59H         LINE#         205
+  C:0A7CH         LINE#         206
+  C:0A8BH         LINE#         207
+  C:0A9BH         LINE#         208
+  C:0AA1H         LINE#         209
+  C:0AA1H         LINE#         210
+  C:0AA8H         LINE#         211
+  C:0AB4H         LINE#         212
+  C:0AB9H         LINE#         213
+  C:0AC6H         LINE#         214
+  C:0AC8H         LINE#         216
+  C:0AD5H         LINE#         219
+  C:0AD5H         LINE#         220
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        TEMPORAL_PATTERN_SEPARATION_V3
+
+  -------         MODULE        ?C?FPCMP
+  C:0AF1H         PUBLIC        ?C?FPCMP
+  C:0AEFH         PUBLIC        ?C?FPCMP3
+  -------         ENDMOD        ?C?FPCMP
+
+  -------         MODULE        ?C?FCAST
+  C:0B72H         PUBLIC        ?C?FCASTC
+  C:0B6DH         PUBLIC        ?C?FCASTI
+  C:0B68H         PUBLIC        ?C?FCASTL
+  -------         ENDMOD        ?C?FCAST
+
+  -------         MODULE        ?C?COPY
+  C:0C76H         PUBLIC        ?C?COPY
+  -------         ENDMOD        ?C?COPY
+
+  -------         MODULE        ?C?UIDIV
+  C:0C9CH         PUBLIC        ?C?UIDIV
+  -------         ENDMOD        ?C?UIDIV
+
+  -------         MODULE        ?C?SIDIV
+  C:0CF1H         PUBLIC        ?C?SIDIV
+  -------         ENDMOD        ?C?SIDIV
+
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/06/2017  19:02:24  PAGE 7
+
+
+  -------         MODULE        ?C?LNEG
+  C:0D27H         PUBLIC        ?C?LNEG
+  -------         ENDMOD        ?C?LNEG
+
+  -------         MODULE        ?C?CCASE
+  C:0D35H         PUBLIC        ?C?CCASE
+  -------         ENDMOD        ?C?CCASE
+
+  -------         MODULE        RAND
+  X:000AH         PUBLIC        ?SRAND?BYTE
+  C:0F6CH         PUBLIC        RAND
+  C:0FA8H         PUBLIC        _SRAND
+  -------         ENDMOD        RAND
+
+  -------         MODULE        ABS
+  C:1087H         PUBLIC        _ABS
+  -------         ENDMOD        ABS
+
+  -------         MODULE        ?C?LLDPDATA
+  C:0D5BH         PUBLIC        ?C?LLDPDATA
+  -------         ENDMOD        ?C?LLDPDATA
+
+  -------         MODULE        ?C?LSTPDATA
+  C:0D67H         PUBLIC        ?C?LSTPDATA
+  -------         ENDMOD        ?C?LSTPDATA
+
+******************************************************************************
+* RESTRICTED VERSION WITH 0800H BYTE CODE SIZE LIMIT; USED: 0538H BYTE (65%) *
+******************************************************************************
+
+Program Size: data=10.2 xdata=39 code=2210
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

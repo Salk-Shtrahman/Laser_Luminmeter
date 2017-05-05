@@ -1,0 +1,302 @@
+C51 COMPILER V9.55   LCD_TRAIL                                                             01/03/2017 15:21:32 PAGE 1   
+
+
+C51 COMPILER V9.55, COMPILATION OF MODULE LCD_TRAIL
+OBJECT MODULE PLACED IN lcd_trail.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE lcd_trail.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "reg60s2.h"
+   2          #include <intrins.h>
+   3          #include <math.h>
+   4          #define DataPort P2
+   5          sbit rs=P0^0;
+   6          sbit e=P0^2;
+   7          sbit rw=P0^1;
+   8          long trigger,rawfreq;
+   9          unsigned char t,i,O,tlsave,thsave;
+  10          unsigned char *s;
+  11          unsigned code sheet[]={0x30,0x31,0x32,0x33,0x34,0x35,
+  12          0x36,0x37,0x38,0x39};
+  13          
+  14          void DelayUs2x(unsigned char t)
+  15          {   
+  16   1       while(--t);
+  17   1      }
+  18          void delay(unsigned char t)
+  19          {
+  20   1           while(t--)
+  21   1         {
+  22   2           //????1mS
+  23   2           DelayUs2x(245);
+  24   2         DelayUs2x(245);
+  25   2         }
+  26   1      }
+  27          bit LCD_Check_Busy(void) 
+  28          { 
+  29   1        _nop_();_nop_();_nop_();_nop_();
+  30   1        DataPort=0xFF; 
+  31   1        rs=0; 
+  32   1        rw=1; 
+  33   1        e=0; 
+  34   1        _nop_();_nop_();_nop_();_nop_();
+  35   1        e=1;
+  36   1        return (bit)(DataPort & 0x80);
+  37   1      }
+  38          void write_command (unsigned char com)
+  39          {
+  40   1         while(LCD_Check_Busy());
+  41   1         rs=0;
+  42   1         rw=0;
+  43   1         _nop_();_nop_();_nop_();_nop_(); 
+  44   1         DataPort=com;
+  45   1         _nop_();_nop_();_nop_();_nop_();
+  46   1         e=1;
+  47   1         _nop_();_nop_();_nop_();_nop_(); 
+  48   1         _nop_();_nop_();_nop_();_nop_(); 
+  49   1         e=0;
+  50   1      }
+  51          void write_data (unsigned char info)
+  52          {
+  53   1         while(LCD_Check_Busy());
+  54   1         rs=1;
+  55   1         rw=0;
+C51 COMPILER V9.55   LCD_TRAIL                                                             01/03/2017 15:21:32 PAGE 2   
+
+  56   1         _nop_();_nop_();_nop_();_nop_();
+  57   1         DataPort=info;
+  58   1         _nop_();_nop_();_nop_();_nop_();
+  59   1         e=1;
+  60   1         _nop_();_nop_();_nop_();_nop_();
+  61   1         _nop_();_nop_();_nop_();_nop_(); 
+  62   1         e=0;
+  63   1      }
+  64          
+  65          void display(long f)
+  66          {
+  67   1        write_command(0x80+0x42);
+  68   1        if(f<100)
+  69   1          {
+  70   2          write_data(sheet[f/10]);
+  71   2          write_data('.');
+  72   2          write_data(sheet[f%10]);
+  73   2          write_data(' ');
+  74   2          write_data('H');
+  75   2          write_data('z');
+  76   2          write_data(' ');
+  77   2          write_data(' ');
+  78   2      
+  79   2        }
+  80   1        else if(f<1000)
+  81   1        { 
+  82   2          write_data(sheet[f/100]);
+  83   2          write_data(' ');
+  84   2          write_data('H');
+  85   2          write_data('z');
+  86   2          write_data(' ');
+  87   2          write_data(' ');
+  88   2          write_data(' ');
+  89   2        }
+  90   1        else if(f<10000)
+  91   1        {                                             
+  92   2        
+  93   2          write_data(sheet[f/1000]);//?
+  94   2          write_data('.');
+  95   2          write_data(sheet[f%1000/100]);//?
+  96   2          write_data(sheet[f%100/10]);
+  97   2          write_data(sheet[f%10]);
+  98   2          
+  99   2          write_data(' ');
+ 100   2          write_data('k');
+ 101   2          write_data('H');
+ 102   2          write_data('z');
+ 103   2          write_data(' ');
+ 104   2          write_data(' ');
+ 105   2          write_data(' ');
+ 106   2        }
+ 107   1        else if(f<100000)
+ 108   1        {
+ 109   2          
+ 110   2          write_data(sheet[f/10000]);
+ 111   2          write_data(sheet[f%10000/1000]);
+ 112   2          write_data('.');
+ 113   2          write_data(sheet[f%1000/100]);
+ 114   2          write_data(sheet[f%100/10]);
+ 115   2          
+ 116   2          write_data(' ');
+ 117   2          write_data('k');
+C51 COMPILER V9.55   LCD_TRAIL                                                             01/03/2017 15:21:32 PAGE 3   
+
+ 118   2          write_data('H');
+ 119   2          write_data('z');
+ 120   2          write_data(' ');
+ 121   2          write_data(' ');
+ 122   2          write_data(' ');
+ 123   2      
+ 124   2        }
+ 125   1        else if(f<1000000)
+ 126   1        {
+ 127   2          write_data(sheet[f/100000]);
+ 128   2          write_data(sheet[f%100000/10000]);
+ 129   2          write_data(sheet[f%10000/1000]);
+ 130   2          write_data('.');
+ 131   2          write_data(sheet[f%1000/100]);
+ 132   2          
+ 133   2          write_data(' ');
+ 134   2          write_data('k');
+ 135   2          write_data('H');
+ 136   2          write_data('z');
+ 137   2          write_data(' ');
+ 138   2          write_data(' ');
+ 139   2          write_data(' ');
+ 140   2        }
+ 141   1        else if(f<10000000)
+ 142   1        {
+ 143   2          write_data(sheet[f/1000000]);
+ 144   2          write_data('.');
+ 145   2          write_data(sheet[f%1000000/100000]);
+ 146   2          write_data(sheet[f%100000/10000]);
+ 147   2          write_data(sheet[f%10000/1000]);
+ 148   2          
+ 149   2          write_data(' ');
+ 150   2          write_data('M');
+ 151   2          write_data('H');
+ 152   2          write_data('z');
+ 153   2          write_data(' ');
+ 154   2          write_data(' ');
+ 155   2          write_data(' ');
+ 156   2        }
+ 157   1        else if(f<100000000)
+ 158   1        {
+ 159   2          write_data(sheet[f/10000000]);
+ 160   2          write_data(sheet[f%10000000/1000000]);
+ 161   2          write_data('.');
+ 162   2          write_data(sheet[f%1000000/100000]);
+ 163   2          write_data(sheet[f%100000/10000]);
+ 164   2          
+ 165   2          write_data(' ');
+ 166   2          write_data('M');
+ 167   2          write_data('H');
+ 168   2          write_data('z');
+ 169   2          write_data(' ');
+ 170   2          write_data(' ');
+ 171   2          write_data(' ');
+ 172   2        }
+ 173   1      }
+ 174          
+ 175          
+ 176          void write_str(unsigned char *s) 
+ 177          {             
+ 178   1        while (*s) 
+ 179   1        {     
+C51 COMPILER V9.55   LCD_TRAIL                                                             01/03/2017 15:21:32 PAGE 4   
+
+ 180   2          write_data( *s);     
+ 181   2          s ++;     
+ 182   2        }
+ 183   1      }
+ 184          
+ 185          
+ 186          
+ 187          void initial(void)    //25??@24MHz
+ 188          {
+ 189   1      //  AUXR &= 0xBF;   //?????12T??
+ 190   1        BRT=255;
+ 191   1        AUXR=0x14;
+ 192   1      //  AUXR|=0x10;
+ 193   1        WAKE_CLKO=0x04;
+ 194   1        TMOD |= 0x15;   //???????
+ 195   1        TL1 = 0xB0;   //??????
+ 196   1        TH1 = 0x3C;   //??????
+ 197   1        TF1 = 0;    //??TF1??
+ 198   1        TR0=1;
+ 199   1        ET0=1;
+ 200   1        ET1=1;
+ 201   1        TR1=1;
+ 202   1        TR0=1;  //???1????
+ 203   1        EA=1;
+ 204   1        write_command(0x38);
+ 205   1        delay(5);
+ 206   1        write_command(0x38);
+ 207   1        delay(5);
+ 208   1        write_command(0x38);
+ 209   1        delay(5);    
+ 210   1        write_command(0x38);
+ 211   1        write_command(0x08);
+ 212   1        write_command(0x01);
+ 213   1        write_command(0x06); 
+ 214   1        delay(3);
+ 215   1        write_command(0x0c);
+ 216   1        write_command(0x80+0x40);
+ 217   1        write_data('f');
+ 218   1        write_data('=');
+ 219   1        write_str(" Shawnigan Lake");
+ 220   1      }
+ 221          
+ 222          
+ 223          
+ 224          void main ()
+ 225          {
+ 226   1      initial();
+ 227   1      while(1){}
+ 228   1      }
+ 229          
+ 230          
+ 231          void count () interrupt 1  //t0 count
+ 232          {
+ 233   1        trigger+=65536;
+ 234   1      }
+ 235          
+ 236          void time () interrupt 3 
+ 237          {
+ 238   1         
+ 239   1        TL1 = 0xB0;   //??????
+ 240   1        TH1 = 0x3C; 
+ 241   1        t++;
+C51 COMPILER V9.55   LCD_TRAIL                                                             01/03/2017 15:21:32 PAGE 5   
+
+ 242   1        
+ 243   1        if(t==10)
+ 244   1        {
+ 245   2          TR0=0;
+ 246   2          TR1=0;
+ 247   2          thsave=TH0;tlsave=TL0;
+ 248   2          TR0=0;
+ 249   2          TH0=0;TL0=0;
+ 250   2          trigger=trigger+thsave*256;
+ 251   2          trigger=trigger+tlsave;
+ 252   2          rawfreq=trigger;
+ 253   2          display(4*rawfreq);
+ 254   2          trigger=0;
+ 255   2          t=0;
+ 256   2          i++;
+ 257   2          if(i==8)
+ 258   2          {
+ 259   3            i=0;
+ 260   3            O++;
+ 261   3            switch (O){
+ 262   4            case 1:write_str(" Shawnigan Lake ");break;
+ 263   4            case 2:write_str("School Astronomy");break;
+ 264   4            case 3:write_str("  Antena Tuner  ");break;
+ 265   4            case 4:write_str("Coded-Dennis Ren");O=0;break;}
+ 266   3            
+ 267   3          }
+ 268   2          TR0=1;
+ 269   2          TR1=1;
+ 270   2        }
+ 271   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1544    ----
+   CONSTANT SIZE    =    104    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     16       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

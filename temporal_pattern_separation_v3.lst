@@ -1,0 +1,280 @@
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION_V3                                        03/06/2017 19:02:24 PAGE 1   
+
+
+C51 COMPILER V9.55, COMPILATION OF MODULE TEMPORAL_PATTERN_SEPARATION_V3
+OBJECT MODULE PLACED IN .\temporal_pattern_separation_v3.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\Temporal\MCU\temporal-pattern-separation\temporal_pattern_separation_
+                    -v3.c COMPACT OPTIMIZE(9,SIZE) BROWSE DEBUG OBJECTEXTEND PRINT(.\temporal_pattern_separation_v3.lst) TABS(2) OBJECT(.\tem
+                    -poral_pattern_separation_v3.obj)
+
+line level    source
+
+   1            //choose modes
+   2          #define  training_phase  2
+   3            //configurable parameters
+   4          #define  punishment_duration  (unsigned int)((1)/.01)       //set time you want the punishment to be in sec
+             -onds in the parenthesises
+   5          #define  delay_duration  (unsigned int)((2)/.01)     
+   6          #define  tone_duration  (unsigned int)((.2)/.01)            //set duration of tones in seconds in the paren
+             -thesises
+   7          #define  time_between_tones  (unsigned int)((.3)/.01)   //set duration of time between tones in the parenth
+             -esises
+   8          #define  lickwindow_duration  (2)/.01               //set duration of lickwindow in seconds in the parenthesi
+             -ses
+   9          #define  right_valve_open_time  (.42)/.01         //set duration of open reward valve in seconds
+  10          #define  left_valve_open_time  (.43)/.01            //set duration of open reward valve in seconds
+  11          #define  trial_number  300                    //sets number of trials
+  12          #define  min_difficulty 4
+  13          #define  max_difficulty 20
+  14          #define  drip_delay_time  (.25)/.01             //only applies to trainingphase 1
+  15          //********************************************************************************************************
+             -****************************
+  16          
+  17          #include <reg60s2.h>
+  18          #include <stdlib.h>     //for rand()/srand() function
+  19          #define FOSC 24000000L    //quartz crystal oscillator frequency
+  20          #define BAUD 9600     //baurdrate
+  21          #define a (256-FOSC/24/7040)  //7.04KHz frequency calculation method of 1T mode
+  22          #define b (256-FOSC/24/7902)  //7902Hz
+  23          #define c (256-FOSC/24/8372)  //8372Hz 
+  24          #define d (256-FOSC/24/9397)  //9397Hz
+  25          #define e (256-FOSC/24/10540) //10540Hz
+  26          #define f (256-FOSC/24/11175) //11175Hz
+  27          #define g (256-FOSC/24/12544) //12544Hz 
+  28          
+  29          bit busy;         //bit used in uart interrupt
+  30          bit target=0;       //target bit used to tell if song is target=1/nontarget=0
+  31          bit tonechange=0;     //when tone is changed in timer0, tonechange goes HIGH so that main function knows to 
+             -switch BRT/tone frequency
+  32          bit info_received_flag=0;
+  33          bit pause=0;
+  34          bit leftdripflag=0;
+  35          bit rightdripflag=0;
+  36          bit dripinterrupt=0;
+  37          unsigned int beginreward;
+  38          unsigned char k=0;        //index used for tones          
+  39          unsigned char correct=(unsigned char)0;     //correct=2 => mouse licked correctly;    correct=1 => incorrect
+             -;    correct=0 => no lick
+  40          unsigned int phasecounter=0;  //+1 everytime timer0 overflows, resets in timer0 when it's time for phase to
+             - change
+  41          unsigned char phase=0;      //phase=0 song; phase=1 lickwindow; phase=2 reward; phase=3 delay
+  42          unsigned char driptimecounter=0;
+  43          unsigned char mouselicked=(unsigned char)0,awesome_buffer;
+  44          sbit BRTCLKO = P2^0;      //pin 1
+  45          sbit leftlight = P2^1;      //pin 2
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION_V3                                        03/06/2017 19:02:24 PAGE 2   
+
+  46          sbit rightlight = P2^2;     //pin 3
+  47          sbit leftvalve = P3^4;      
+  48          sbit rightvalve = P3^6; 
+  49          bit senddata=0;
+  50          //unsigned char parameters[12] = 0;
+  51          //unsigned char parameter_index = 0;
+  52          //unsigned char punishment_duration = 0;    //set time you want the punishment to be in seconds in the par
+             -enthesises
+  53          //unsigned char delay_duration = 0;      
+  54          //unsigned char tone_duration = 0;          //set duration of tones in seconds in the parenthesises
+  55          //unsigned char time_between_tones = 0;   //set duration of time between tones in the parenthesises
+  56          //unsigned char lickwindow_duration = 0;    //set duration of lickwindow in seconds in the parenthesises
+  57          //unsigned char valve_open_time = 0;    //set duration of open reward valve in seconds
+  58          //unsigned char trial_number = 0;         //sets number of trials
+  59          //unsigned char min_difficulty = 0;
+  60          //unsigned char max_difficulty = 0;
+  61          //unsigned char drip_delay_time = 0;    //only applies to trainingphase 1
+  62          //unsigned char training_phase = 0;   
+  63          
+  64          void timer0(void) interrupt 1 {
+  65   1        TL0=0x2B;            //initial values loaded to timer 100HZ (.01s period) 
+  66   1        TH0=0xB1;            //65355-(24,000,000/12/100)=45355 45355(dec)->B12B(hex) TH0=B1 TL0=2B      
+  67   1        phasecounter++;
+  68   1        if(training_phase==1 & dripinterrupt==0){
+  69   2          if (leftdripflag==1){driptimecounter++;
+  70   3            if (driptimecounter==drip_delay_time){leftlight=0; leftvalve=1;}
+  71   3            else if (driptimecounter==left_valve_open_time+drip_delay_time){
+  72   4              leftdripflag=0; driptimecounter=0; leftlight=1; leftvalve=0;}}
+  73   2          if (rightdripflag==1){driptimecounter++; 
+  74   3            if (driptimecounter==drip_delay_time){rightlight=0; rightvalve=1;}
+  75   3            else if (driptimecounter==right_valve_open_time+drip_delay_time){
+  76   4              rightdripflag=0; driptimecounter=0; rightlight=1; rightvalve=0;}}}
+  77   1        else{
+  78   2          if (leftdripflag==1){driptimecounter++; leftvalve=1; leftlight=0;
+  79   3            if (driptimecounter==left_valve_open_time){
+  80   4              dripinterrupt=0; leftdripflag=0; driptimecounter=0; leftlight=1; leftvalve=0;}}
+  81   2          if (rightdripflag==1){driptimecounter++; rightvalve=1; rightlight=0;
+  82   3            if (driptimecounter==right_valve_open_time){
+  83   4              dripinterrupt=0; rightdripflag=0; driptimecounter=0; rightlight=1; rightvalve=0;}}}
+  84   1        if (phase==1 & phasecounter==lickwindow_duration){phasecounter=0; correct=(unsigned char)0; phase=2; mous
+             -elicked=(unsigned char)0;}        
+  85   1        if (phase==2){        //delay phase
+  86   2          if (correct==(unsigned char)2 & phasecounter==delay_duration){phase=0; phasecounter=0;}
+  87   2          else if (phasecounter==punishment_duration+delay_duration){phase=0; phasecounter=0;}}    //phasecounter r
+             -esets every phase change}
+  88   1        if (phase==0){
+  89   2          if (phasecounter == 1){tonechange=1; WAKE_CLKO=0x04;}
+  90   2          else if (phasecounter == tone_duration){k++; tonechange=1; WAKE_CLKO=0;}  
+  91   2          else if (phasecounter == tone_duration+time_between_tones){WAKE_CLKO=0x04;}
+  92   2            else if (phasecounter == 2*tone_duration+time_between_tones){k++; tonechange=1; WAKE_CLKO=0;}
+  93   2          else if (phasecounter == 2*tone_duration+2*time_between_tones){WAKE_CLKO=0x04;}
+  94   2            else if (phasecounter == 3*tone_duration+2*time_between_tones){k++; tonechange=1; WAKE_CLKO=0;}
+  95   2            else if (phasecounter == 3*tone_duration+3*time_between_tones){WAKE_CLKO=0x04;}
+  96   2          else if (phasecounter == 4*tone_duration+3*time_between_tones-1){
+  97   3          senddata=1;}
+  98   2          else if (phasecounter == 4*tone_duration+3*time_between_tones){phasecounter=0; WAKE_CLKO=0; k=0; //turn 
+             -off tone; reset tone index; reset phasecounter 
+  99   3            if (training_phase == 1){phase=2; 
+ 100   4              if (target){rightdripflag=1;}else{leftdripflag=1;}}
+ 101   3            else{phase=1;}}}}   //go to reward phase if training when song ends. otherwise, don't
+ 102          
+ 103          void exint0() interrupt 0 {    //left lick interrupt (location at 0003H)
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION_V3                                        03/06/2017 19:02:24 PAGE 3   
+
+ 104   1        while(TI==0){}TI=0; SBUF=0xFF; 
+ 105   1        if (phase==1){phasecounter=0; phase=2; mouselicked=(unsigned char)0x01;
+ 106   2          if (target){correct=(unsigned char)1;}//if mouse was supposed to lick right lead, it is incorrect, so co
+             -rrect =1
+ 107   2          else {correct=(unsigned char)2; leftdripflag=1;}}}//if mouse was supposed to lick left lead, it lick cor
+             -rectly, correct = 2
+ 108          
+ 109          void exint1() interrupt 2 {    //right lick interrupt (location at 0013H)
+ 110   1        while(TI==0){}TI=0; SBUF=0xFE;    
+ 111   1        if (phase==1) {phasecounter=0; phase=2; mouselicked=(unsigned char)0x02;
+ 112   2          if (target){correct=(unsigned char)2; rightdripflag=1;}//if mouse was supposed to lick right lead, it is
+             - incorrect, so correct=2
+ 113   2          else {correct=(unsigned char)1;}}}//if mouse was supposed to lick left lead, it lick correctly, correct 
+             -= 1
+ 114          
+ 115          void Uart_Isr() interrupt 4 {
+ 116   1          if (RI){RI = 0; 
+ 117   2      ////  if (SBUF == 0x55) {pause~=pause}
+ 118   2      ////  else if (SBUF == 0x25) {dripinterrupt=1; rightdripflag=1; target=1;}  //right valve drip
+ 119   2      ////  else if (SBUF == 0x52) {dripinterrupt=1; leftdripflag=1; target=0;} //left valve drip 
+ 120   2      ////  else {parameters[0] = SBUF; parameter_index=parameter_index+1;}  
+ 121   2        }   
+ 122   1          if (TI){TI = 0; busy = 0;}}     //Clear transmit interrupt flag; Clear transmit busy flag 
+ 123          
+ 124          void main(){
+ 125   1        unsigned char targetsequence[4]={0,4,2,6};    //8th octave: {0,1,2,3,4,5,6} --> {a,b,c,d,e,f,g}
+ 126   1        unsigned char targetdifficulty[4]={0,0,0,0};
+ 127   1        unsigned char tonedifficulty=0;
+ 128   1        unsigned char songdifficulty=0;
+ 129   1        unsigned char i=0;      //used to index tones when generating sequence
+ 130   1        unsigned char sequence[4];
+ 131   1        unsigned int j1=0;      //j1 is the index used to indicate which sequence is being played     
+ 132   1        unsigned char j2=0;
+ 133   1        unsigned char toneslist[7]={0,1,2,3,4,5,6}; //array used to randomly generate sequences, 8th octave: {a,b
+             -,c,d,e,f,g}
+ 134   1        bit correctflag = 0;
+ 135   1        SCON=0x5a;                //8 bit data, no parity bit
+ 136   1        TMOD=0x21;              //8-bit auto reload timer 1 and 16 bit timer 0
+ 137   1        IE=0x82;
+ 138   1      //  IE=0x9F;            //enable global interrupt, and serial, both timer, and both external interrupts 
+ 139   1        TH1=TL1=0xFD;           //Set Uart baudrate (9600?)
+ 140   1        TL0=0x2B;                   //initial values loaded to timer 100HZ (.01s period) 
+ 141   1        TH0=0xB1;                   //65355-(24,000,000/12/100)=45355 45355(dec)->B12B(hex) TH0=B1 TL0=2B
+ 142   1        TCON=0x50;          //start timers 0 and 1
+ 143   1        IT1=1;                    //set INT1 int type (1:Falling Edge only 0:Low level)
+ 144   1        IT0=1;                    //set INT0 int type (1:Falling Edge 0:Low level)     
+ 145   1        AUXR=0x10; 
+ 146   1        P3M0=0x50;
+ 147   1        P3M1=0x00;
+ 148   1        rightvalve=0;
+ 149   1        leftvalve=0;
+ 150   1        srand(7);//need random seed?
+ 151   1        for (i=0;i<=3;i++){
+ 152   2          sequence[i] = toneslist[rand()%7];
+ 153   2          if (i<3){
+ 154   3            switch(targetsequence[i]){
+ 155   4              case 0: targetdifficulty[i]=0; break; case 1: targetdifficulty[i]=2; break; case 2: targetdifficulty[i
+             -]=3; break;   
+ 156   4              case 3: targetdifficulty[i]=5; break; case 4: targetdifficulty[i]=7; break; case 5: targetdifficulty[i
+             -]=8; break;
+ 157   4                  case 6: targetdifficulty[i]=10; break;}}}
+ 158   1        while(1){
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION_V3                                        03/06/2017 19:02:24 PAGE 4   
+
+ 159   2          EX1=0; EX0=0;                    //disable external interrupts
+ 160   2      //    while(1){
+ 161   2      //      if (parameter_index < 10){info_received_flag = 1; 
+ 162   2      //        while(TI==0){}TI=0; SBUF = 0x55}
+ 163   2      //      punishment_duration = parameters[0];    //set time you want the punishment to be in seconds in the pa
+             -renthesises
+ 164   2      //      delay_duration = parameters[1];      
+ 165   2      //      tone_duration = parameters[2];          //set duration of tones in seconds in the parenthesises
+ 166   2      //      time_between_tones = parameters[3];   //set duration of time between tones in the parenthesises
+ 167   2      //      lickwindow_duration = parameters[4];    //set duration of lickwindow in seconds in the parenthesises
+ 168   2      //        valve_open_time = parameters[5];    //set duration of open reward valve in seconds
+ 169   2      //        trial_number = parameters[6];         //sets number of trials
+ 170   2      //      min_difficulty = parameters[7];
+ 171   2      //      max_difficulty = parameters[8];
+ 172   2      //      drip_delay_time = parameters[9];    //only applies to trainingphase 1
+ 173   2      //      training_phase = parameters[10];
+ 174   2      //      if (info_received_flag == 1) {info_received_flag=0; break;}
+ 175   2      //    }
+ 176   2          EX1=1; EX0=1;                    //disable external interrupts  
+ 177   2          while(j1<=trial_number){
+ 178   3            if (training_phase==1){correctflag=1;}
+ 179   3            if (training_phase==2 & correct==(unsigned char)2){correctflag=1;}
+ 180   3            if (correctflag==1 & j1%3==0){correctflag=0; target=!target;}
+ 181   3            else if ((training_phase==3 & correct==(unsigned char)2) || training_phase==4){target=rand()%2;}    //son
+             -g composed in phase 3
+ 182   3            songdifficulty=0;
+ 183   3            if (target==1){sequence[0]=targetsequence[0]; sequence[1]=targetsequence[1]; sequence[2]=targetsequence
+             -[2]; sequence[3]=targetsequence[3];}  
+ 184   3            else {                      //if target==1, sequence = cdef. if not, random sequence
+ 185   4              do{ for (i=0;i<3;i++){
+ 186   6                  sequence[i]=toneslist[rand()%7];
+ 187   6                  switch(sequence[i]){
+ 188   7                    case 0: tonedifficulty=0; break; case 1: tonedifficulty=2; break; case 2: tonedifficulty=3; break; 
+             -  
+ 189   7                    case 3: tonedifficulty=5; break; case 4: tonedifficulty=7; break; case 5: tonedifficulty=8; break;
+ 190   7                        case 6: tonedifficulty=10; break;}
+ 191   6                  songdifficulty=songdifficulty+abs(tonedifficulty-targetdifficulty[i]);}
+ 192   5              }while(songdifficulty<=min_difficulty && songdifficulty>=max_difficulty);}    
+ 193   3            while(phase==2){}       //catches code until delay ends       
+ 194   3      //      while(pause==1){}
+ 195   3            if (j1==255 || j1==510){j2++;} j1++;  
+ 196   3            EX1=0; EX0=0; while(TI==0){} TI=0; SBUF=0x71;   
+ 197   3            while(TI==0){} TI=0; SBUF=(unsigned char)j2;
+ 198   3            while(TI==0){} TI=0; SBUF=(unsigned char)j1; EX1=1; EX0=1;                                  
+ 199   3            while(phase==0){        //song starts here
+ 200   4              if (senddata==1){senddata=0; EX1=0; EX0=0;
+ 201   5                while(TI==0){} TI=0; SBUF=0x72;
+ 202   5                while(TI==0){} TI=0; SBUF=(sequence[0]<<4)|sequence[1];
+ 203   5                while(TI==0){} TI=0; SBUF=(sequence[2]<<4)|sequence[3]; EX1=1; EX0=1;}        
+ 204   4              if (tonechange){tonechange=0;         
+ 205   5                switch (sequence[k]) {  //and sets BRT to the value such that it produces the appropriate frequency
+ 206   6                  case 0: BRT = a; break; case 1: BRT = b; break; case 2: BRT = c; break;
+ 207   6                  case 3: BRT = d; break; case 4: BRT = e; break; case 5: BRT = f; break;
+ 208   6                  case 6: BRT = g; break;}}
+ 209   4      }     //phase 1 starts by printing out tone sequence 
+ 210   3            while(phase==1){}   //stops code until mouse licks or runs out of time
+ 211   3            EX1=0; EX0=0; while(TI==0){} TI=0; SBUF=0x74;
+ 212   3            while(TI==0){} TI=0; 
+ 213   3            awesome_buffer=(correct<<4)|mouselicked;
+ 214   3            SBUF=awesome_buffer;
+ 215   3            
+ 216   3            while(TI==0){} TI=0; SBUF=songdifficulty; EX1=1; EX0=1;}
+C51 COMPILER V9.55   TEMPORAL_PATTERN_SEPARATION_V3                                        03/06/2017 19:02:24 PAGE 5   
+
+ 217   2      /////////////////////// parameter_index=0; 
+ 218   2      /////////////////////// j1=0; j2=0;
+ 219   2        }     
+ 220   1      }
+*** WARNING C294 IN LINE 69 OF ..\Temporal\MCU\temporal-pattern-separation\temporal_pattern_separation_v3.c: unreachable
+             - code
+*** WARNING C294 IN LINE 100 OF ..\Temporal\MCU\temporal-pattern-separation\temporal_pattern_separation_v3.c: unreachabl
+             -e code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1274    ----
+   CONSTANT SIZE    =     15    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =     10      25
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      9       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

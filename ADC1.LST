@@ -1,0 +1,330 @@
+C51 COMPILER V9.55   ADC1                                                                  01/18/2017 13:55:17 PAGE 1   
+
+
+C51 COMPILER V9.55, COMPILATION OF MODULE ADC1
+OBJECT MODULE PLACED IN ADC1.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ADC1.c COMPACT OPTIMIZE(9,SIZE) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          /*------------------------------------------------------------------*/
+   2          /* --- STC MCU Limited ---------------------------------------------*/
+   3          /* --- STC12C5Axx Series MCU A/D Conversion Demo -------------------*/
+   4          /* --- Mobile: (86)13922805190 -------------------------------------*/
+   5          /* --- Fax: 86-0513-55012956,55012947,55012969 ---------------------*/
+   6          /* --- Tel: 86-0513-55012928,55012929,55012966----------------------*/
+   7          /* --- Web: www.STCMCU.com -----------------------------------------*/
+   8          /* --- Web: www.GXWMCU.com -----------------------------------------*/
+   9          /* If you want to use the program or the program referenced in the  */
+  10          /* article, please specify in which data and procedures from STC    */
+  11          /*------------------------------------------------------------------*/
+  12          
+  13          #include "REG51.H"
+  14          #include <stdio.h>
+  15          #include <intrins.h>
+  16          #include <math.h>
+  17          #include <stdlib.h>
+  18          
+  19          #define FOSC    24000000L 
+  20          #define BAUD    9600
+  21          
+  22          typedef unsigned char BYTE;
+  23          typedef unsigned int WORD;
+  24          
+  25          /*Declare SFR associated with the ADC */
+  26          sfr ADC_CONTR   =   0xBC;           //ADC control register
+  27          sfr ADC_RES     =   0xBD;           //ADC high 8-bit result register
+  28          sfr ADC_LOW2    =   0xBE;           //ADC low 2-bit result register
+  29          sfr P1ASF       =   0x9D;           //P1 secondary function control register
+  30          
+  31          #define DataPort P2
+  32          sbit rs=P0^0;
+  33          sbit e=P0^2;
+  34          sbit rw=P0^1;
+  35          
+  36          /*Define ADC operation const for ADC_CONTR*/
+  37          #define ADC_POWER   0x80            //ADC power control bit
+  38          #define ADC_FLAG    0x10            //ADC complete flag
+  39          #define ADC_START   0x08            //ADC start control bit
+  40          #define ADC_SPEEDLL 0x00            //420 clocks
+  41          #define ADC_SPEEDL  0x20            //280 clocks
+  42          #define ADC_SPEEDH  0x40            //140 clocks
+  43          #define ADC_SPEEDHH 0x60            //70 clocks
+  44          #define sample_size 100
+  45          
+  46          
+  47          unsigned int xdata gold1[]={785,786,846,915,950,1115,1220,1285,1402,1535,1746,1912,2495,3500,4500,5620,646
+             -0,7510,8740,9500,10330,11830,12600,13860,14650,15780,16520,17560,18010,18810,19880,20310,21120,21760,22580,23180,23210};
+  48          unsigned int xdata sen1[]={0   ,2  ,115,300,370,700 ,920 ,1076,1310,1550,2025,2345,3597,5585,7715,10026,11
+             -751,14020,16590,18220,20000,23273,24930,27730,29424,31890,33470,35642,37950,39267,41185,41910,42840,43058,43160,43200,43
+             -210};
+  49          unsigned int xdata gold2[]={235 ,237  ,268  ,323  ,375  ,596  ,750  ,851  ,1081 ,1222 ,1501 ,1798 ,2316 ,2890 ,36
+             -78  ,4607  ,5590  ,8630 ,11030  ,12250  ,13400  ,14870  ,16110  ,17480  ,18760  ,19350  ,20120  ,20200,23100};
+  50          unsigned int xdata sen2[]={0,15,38,123,210,590,860,1020,1395,1635,2095,2590,3440,4385,5690,7225,8870,13895
+             -,17900,20000,21960,24420,26600,28820,30970,31940,33120,33260,38000};
+C51 COMPILER V9.55   ADC1                                                                  01/18/2017 13:55:17 PAGE 2   
+
+  51          
+  52          void InitUart();
+  53          void InitADC();
+  54          void SendData(BYTE dat);
+  55          BYTE GetADCResult(BYTE ch);
+  56          unsigned int ShowResult(BYTE ch);
+  57          
+  58          
+  59          
+  60          void DelayUs2x(unsigned char t)
+  61          {   
+  62   1       while(--t);
+  63   1      }
+  64          void delay(unsigned int t)
+  65          {
+  66   1           while(t--)
+  67   1         {
+  68   2           //????1mS
+  69   2           DelayUs2x(245);
+  70   2         DelayUs2x(245);
+  71   2         }
+  72   1      }
+  73          bit LCD_Check_Busy(void) 
+  74          { 
+  75   1        _nop_();_nop_();_nop_();_nop_();
+  76   1        DataPort=0xFF; 
+  77   1        rs=0; 
+  78   1        rw=1; 
+  79   1        e=0; 
+  80   1        _nop_();_nop_();_nop_();_nop_();
+  81   1        e=1;
+  82   1        return (bit)(DataPort & 0x80);
+  83   1      }
+  84          void write_command (unsigned char com)
+  85          {
+  86   1         while(LCD_Check_Busy());
+  87   1         rs=0;
+  88   1         rw=0;
+  89   1         _nop_();_nop_();_nop_();_nop_(); 
+  90   1         DataPort=com;
+  91   1         _nop_();_nop_();_nop_();_nop_();
+  92   1         e=1;
+  93   1         _nop_();_nop_();_nop_();_nop_(); 
+  94   1         _nop_();_nop_();_nop_();_nop_(); 
+  95   1         e=0;
+  96   1      }
+  97          void write_data (unsigned char info)
+  98          {
+  99   1         while(LCD_Check_Busy());
+ 100   1         rs=1;
+ 101   1         rw=0;
+ 102   1         _nop_();_nop_();_nop_();_nop_();
+ 103   1         DataPort=info;
+ 104   1         _nop_();_nop_();_nop_();_nop_();
+ 105   1         e=1;
+ 106   1         _nop_();_nop_();_nop_();_nop_();
+ 107   1         _nop_();_nop_();_nop_();_nop_(); 
+ 108   1         e=0;
+ 109   1      }
+ 110          void write_str(unsigned char *s) 
+ 111          {         
+ 112   1        while (*s) 
+C51 COMPILER V9.55   ADC1                                                                  01/18/2017 13:55:17 PAGE 3   
+
+ 113   1        {     
+ 114   2          write_data( *s);     
+ 115   2          s ++;     
+ 116   2        }
+ 117   1      }
+ 118          
+ 119          void main()
+ 120          {
+ 121   1        char ch1good=0;
+ 122   1        float slope;
+ 123   1        unsigned int interval_size,interval_height;
+ 124   1        unsigned char cur;
+ 125   1        unsigned long ach1,ach2;
+ 126   1        unsigned int ich1,ich2;
+ 127   1        unsigned int xdata buf1[sample_size];
+ 128   1        unsigned int xdata buf2[sample_size];
+ 129   1        float ch1,ch2,bro,bro1;
+ 130   1        char bufff[10],buff[10];
+ 131   1        unsigned int i;
+ 132   1        InitUart();                     //Init UART, use to show ADC result
+ 133   1        InitADC();                      //Init ADC sfr
+ 134   1        printf("helooooooooooooooooooooooooooooo");
+ 135   1        write_command(0x38);
+ 136   1        delay(5);
+ 137   1        write_command(0x38);
+ 138   1        delay(5);
+ 139   1        write_command(0x38);
+ 140   1        delay(5);    
+ 141   1        write_command(0x38);
+ 142   1        write_command(0x08);
+ 143   1        write_command(0x01);
+ 144   1        write_command(0x06); 
+ 145   1        delay(3);
+ 146   1        write_command(0x0c);
+ 147   1        write_command(0x80);
+ 148   1        write_str("Ti:saph    Fidel");
+ 149   1        delay(5);
+ 150   1        write_command(0x80+0x40);
+ 151   1        delay(5);
+ 152   1        write_str("   . W       . W");
+ 153   1        
+ 154   1        while (1)
+ 155   1        {
+ 156   2        //ShowResult(7);              //Show Channel0
+ 157   2      
+ 158   2      
+ 159   2          buf1[cur]=(ShowResult(0));  
+ 160   2          delay(1);
+ 161   2          buf2[cur]=(ShowResult(1));
+ 162   2      
+ 163   2          cur++;
+ 164   2          if(cur==sample_size){
+ 165   3            cur=0;
+ 166   3          
+ 167   3            ach1=0;
+ 168   3            for(i=0;i<sample_size;i++){
+ 169   4              ach1+=buf1[i];
+ 170   4            }
+ 171   3            ch1=(float)ach1/sample_size;
+ 172   3            ich1=(unsigned long)ch1*100;
+ 173   3            ch1good=0;
+ 174   3            
+C51 COMPILER V9.55   ADC1                                                                  01/18/2017 13:55:17 PAGE 4   
+
+ 175   3            write_command(0x80+0x40);
+ 176   3            if(ich1<=sen1[0]){
+ 177   4              write_str("< 75mW");
+ 178   4            }
+ 179   3            else if(ich1>sen1[36]){
+ 180   4              write_str("Max");
+ 181   4            }
+ 182   3            else{
+ 183   4              i=0;
+ 184   4              while(ich1>=sen1[i])
+ 185   4                i++;
+ 186   4              
+ 187   4              
+ 188   4              interval_size=gold1[i]-gold1[i-1];
+ 189   4              interval_height=sen1[i]-sen1[i-1];
+ 190   4              slope=(float)interval_size/interval_height;
+ 191   4              bro=(float)(gold1[i-1]+slope*(ich1-sen1[i-1]))/10;
+ 192   4              
+ 193   4          
+ 194   4              sprintf(bufff,"%4.0fmW  ",bro);
+ 195   4              write_str(bufff);
+ 196   4              printf(bufff);
+ 197   4              ch1good=1;
+ 198   4            }
+ 199   3            
+ 200   3      
+ 201   3            write_command(0x80+0x4a);
+ 202   3            ach2=0;
+ 203   3            i=0;
+ 204   3            for(i=0;i<sample_size;i++){
+ 205   4      //        
+ 206   4              ach2+=buf2[i];
+ 207   4            }
+ 208   3            ch2=(float)ach2/sample_size;
+ 209   3            delay(1000);
+ 210   3            
+ 211   3            ich2=(float)ch2*100;
+ 212   3      
+ 213   3      
+ 214   3            if(ich2==0){
+ 215   4              write_str("< 23mW");
+ 216   4            }
+ 217   3            else if(ich2>=sen2[27]){
+ 218   4              write_str("Max");
+ 219   4            }
+ 220   3            else{
+ 221   4              i=0;
+ 222   4              while(ich2>=sen2[i])
+ 223   4                i++;
+ 224   4              interval_size=gold2[i]-gold2[i-1];
+ 225   4              interval_height=sen2[i]-sen2[i-1];
+ 226   4              slope=(float)interval_size/interval_height;
+ 227   4              bro1=(float)(gold2[i-1]+slope*(ich2-sen2[i-1]))/10;
+ 228   4              printf("i:%u #:%u, x:%u h:%u sl:%f ans:%f\n",i,ich2,interval_size,interval_height,slope,bro1);
+ 229   4              sprintf(buff,"%4.0fmW",bro1);
+ 230   4              write_str(buff);
+ 231   4              
+ 232   4            }
+ 233   3          }
+ 234   2        }
+ 235   1      }
+ 236          
+C51 COMPILER V9.55   ADC1                                                                  01/18/2017 13:55:17 PAGE 5   
+
+ 237          /*----------------------------
+ 238          Send ADC result to UART
+ 239          ----------------------------*/
+ 240          unsigned int ShowResult(BYTE ch)
+ 241          {
+ 242   1        unsigned int bruh,dude;
+ 243   1        bruh=GetADCResult(ch);
+ 244   1        printf("Channel %u\t",(int)ch);
+ 245   1        dude=ADC_LOW2+bruh*4;
+ 246   1      //  if (ch==1)
+ 247   1        //  printf("Value: %u\r",(unsigned int)dude);     //Show ADC high 8-bit result   
+ 248   1        return dude;
+ 249   1        //Show Channel NO.
+ 250   1        //if you want show 10-bit result, uncomment next line
+ 251   1      //  SendData(ADC_LOW2);             //Show ADC low 2-bit result
+ 252   1      }
+ 253          
+ 254          /*----------------------------
+ 255          Get ADC result
+ 256          ----------------------------*/
+ 257          BYTE GetADCResult(BYTE ch)
+ 258          {
+ 259   1          ADC_CONTR = ADC_POWER | ADC_SPEEDLL | ch | ADC_START;
+ 260   1          _nop_();                        //Must wait before inquiry
+ 261   1          _nop_();
+ 262   1          _nop_();
+ 263   1          _nop_();
+ 264   1          while (!(ADC_CONTR & ADC_FLAG));//Wait complete flag
+ 265   1          ADC_CONTR &= ~ADC_FLAG;         //Close ADC
+ 266   1      
+ 267   1          return ADC_RES;                 //Return ADC result
+ 268   1      }
+ 269          
+ 270          /*----------------------------
+ 271          Initial UART
+ 272          ----------------------------*/
+ 273          void InitUart()
+ 274          {
+ 275   1          SCON = 0x5a;                    //8 bit data ,no parity bit
+ 276   1          TMOD = 0x20;                    //T1 as 8-bit auto reload
+ 277   1          TH1 = TL1 = 0xFD; //Set Uart baudrate
+ 278   1          TR1 = 1;                        //T1 start running
+ 279   1      }
+ 280          
+ 281          /*----------------------------
+ 282          Initial ADC sfr
+ 283          ----------------------------*/
+ 284          void InitADC()
+ 285          {
+ 286   1          P1ASF = 0x00;                   //Open 8 channels ADC function
+ 287   1          ADC_RES = 0;                    //Clear previous result
+ 288   1          ADC_CONTR = ADC_POWER | ADC_SPEEDLL;
+ 289   1          delay(2);                       //ADC power-on and delay
+ 290   1      } 
+ 291          
+ 292          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1356    ----
+   CONSTANT SIZE    =    150    ----
+   XDATA SIZE       =    264     400
+C51 COMPILER V9.55   ADC1                                                                  01/18/2017 13:55:17 PAGE 6   
+
+   PDATA SIZE       =   ----      55
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
